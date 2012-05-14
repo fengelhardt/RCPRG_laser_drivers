@@ -1,6 +1,6 @@
 all: installed
 
-GIT_URL = http://github.com/konradb3/libLMS1xx.git
+GIT_URL = git://github.com/jksrecko/libLMS1xx.git
 GIT_DIR = build/libLMS1xx
 
 include $(shell rospack find mk)/git_checkout.mk
