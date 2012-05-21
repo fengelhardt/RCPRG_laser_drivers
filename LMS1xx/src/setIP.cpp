@@ -19,25 +19,26 @@ using std::endl;
 
 int main(int argc, char **argv)
 {
+	string host, new_ip_str;
 	po::options_description desc(
 		"setIP is used to change the IP address of a SICK LMS1xx laser range sensor.\n\n"
 		"Command line arguments:");
 	desc.add_options()("help,h", "Produce this help message.")
-		("current-ip,i", po::value<string>()->default_value("192.168.0.1"), "Current IP address")
-		("new-ip,n", po::value<string>()->default_value("192.168.0.2"), "New IP address");
+		("current-ip,i", po::value<string>(&host)->default_value("192.168.0.1"), "Current IP address")
+		("new-ip,n", po::value<string>(&new_ip_str), "New IP address");
 	
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
 	po::notify(vm);
 	
-	if (vm.count("help"))
+	if (vm.count("help") || !vm.count("new-ip"))
 	{
 		cout << desc << "\n";
 		exit(0);
 	}
 	
 	unsigned long new_ip;
-	int s = inet_pton(AF_INET, vm["new-ip"].as<string>().c_str(), &new_ip);
+	int s = inet_pton(AF_INET, new_ip_str.c_str(), &new_ip);
 	if (s <= 0)
 	{
 		if (s == 0)
@@ -48,10 +49,10 @@ int main(int argc, char **argv)
 	}
 	
 	LMS1xx laser;
-	laser.connect(vm["current-ip"].as<string>());
+	laser.connect(host);
 	if (!laser.isConnected())
 	{
-		cout << "Unable to connect to device at address: " << vm["current-ip"].as<string>() << endl;
+		cout << "Unable to connect to device at address: " << host << endl;
 		exit(1);
 	}
 	laser.login();
@@ -61,13 +62,15 @@ int main(int argc, char **argv)
 		s = laser.reboot();
 		if (s)
 			cout << "Successfully rebooted the device." << endl
-				<< "You can now connect to the laser using it's new IP: " << vm["new-ip"].as<string>() << endl;
+				<< "You can now connect to the laser using it's new IP: " << new_ip_str << endl;
 		else
 			std::cerr << "Device reboot attempt failed!" << endl
-				<< "Current IP (" << vm["current-ip"].as<string>() << ") still active." << endl;
+				<< "Current IP (" << host << ") still active." << endl;
 	}
 	else
 		cout << "Set IP command unsuccessful." << endl;
+	
+	laser.disconnect();
 	
 	return 0;
 }
