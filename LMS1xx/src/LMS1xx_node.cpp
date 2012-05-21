@@ -5,6 +5,7 @@
 #include "sensor_msgs/LaserScan.h"
 
 #define DEG2RAD M_PI/180.0
+//#define TESTING
 
 int main(int argc, char **argv)
 {
@@ -36,6 +37,7 @@ int main(int argc, char **argv)
     ROS_INFO("Connected to laser.");
 
     laser.login();
+    
     cfg = laser.getScanCfg();
 
     scan_msg.header.frame_id = frame_id;
@@ -73,15 +75,17 @@ int main(int argc, char **argv)
     scan_msg.intensities.resize(num_values);
 
     dataCfg.outputChannel = 1;
-    dataCfg.remission = true;
-    dataCfg.resolution = 1;
+    dataCfg.remission = false;
+    dataCfg.resolution = 0;
     dataCfg.encoder = 0;
     dataCfg.position = false;
     dataCfg.deviceName = false;
+    dataCfg.timestamp = true;
     dataCfg.outputInterval = 1;
 
     laser.setScanDataCfg(dataCfg);
-
+    laser.startDevice();
+    laser.login();
     laser.startMeas();
 
     status_t stat;
@@ -98,23 +102,29 @@ int main(int argc, char **argv)
     {
       ros::Time start = ros::Time::now();
 
-      scan_msg.header.stamp = start;
       ++scan_msg.header.seq;
 
-      laser.getData(data);
-
-      for (int i = 0; i < data.dist_len1; i++)
+      if (laser.getData(data) == 0)
       {
-        scan_msg.ranges[i] = data.dist1[i] * 0.001;
+        ros::Time lms_time(data.timestamp.tv_sec, data.timestamp.tv_usec*1000);
+        scan_msg.header.stamp = lms_time;
+#ifdef TESTING
+        ros::Time received = ros::Time::now();
+        ROS_INFO("Received and reported time diff: %lf ms", (received-lms_time).toSec()*1e3);
+#endif
+        
+        for (int i = 0; i < data.dist_len1; i++)
+        {
+          scan_msg.ranges[i] = data.dist1[i] * 0.001;
+        }
+  
+        for (int i = 0; i < data.rssi_len1; i++)
+        {
+          scan_msg.intensities[i] = data.rssi1[i];
+        }
+  
+        scan_pub.publish(scan_msg);
       }
-
-      for (int i = 0; i < data.rssi_len1; i++)
-      {
-        scan_msg.intensities[i] = data.rssi1[i];
-      }
-
-      scan_pub.publish(scan_msg);
-
       ros::spinOnce();
     }
 
