@@ -14,6 +14,11 @@ rosbuild_init()
 #set the default path for built executables to the "bin" directory
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 rosbuild_add_executable(LMS100 src/LMS1xx_node.cpp)
+#Add boost for fuerte
+rosbuild_add_boost_directories()
 rosbuild_add_executable(set_config src/setConfig.cpp)
+rosbuild_link_boost(set_config program_options)
 rosbuild_add_executable(set_IP src/setIP.cpp)
+rosbuild_link_boost(set_IP program_options)
 rosbuild_add_executable(synchronize_clock src/synchronize_clock.cpp)
+rosbuild_link_boost(synchronize_clock program_options)
